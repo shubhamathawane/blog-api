@@ -24,6 +24,7 @@ const PostSchema = new mongoose.Schema({
   content: { type: String, required: true },
   username: { type: String },
   category: { type: String },
+  views: { type: Number, default: 0 }, 
 });
 
 const Post = mongoose.model("Post", PostSchema);
@@ -32,7 +33,7 @@ const PostCommentSchema = mongoose.Schema({
   post: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true },
   createdAt: { type: Date, default: Date.now },
   text: { type: String },
-  author: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  author: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 });
 
 const PostComment = mongoose.model("PostComment", PostCommentSchema);

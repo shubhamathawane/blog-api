@@ -1,9 +1,9 @@
 const router = require("express").Router();
 const conn = require("../Utils/DB");
-const { Post } = require("../Models/Schema");
+const { Post, User, PostComment } = require("../Models/Schema");
 const { verifyTokenAndAuth, verifyToken } = require("./VerifyToken");
 
-router.post("/", verifyToken , async (req, res) => {
+router.post("/", async (req, res) => {
   try {
     if (req.body) {
       // const q =
@@ -65,45 +65,58 @@ router.get("/", async (req, res) => {
   try {
     let posts;
     if (qNew) {
-      posts = await new Promise((resolve) => {
-        const postsQuery =
-          "SELECT * FROM `posts` order by `CreatedAt` ASC LIMIT 10;";
-        conn.query(postsQuery, (err, data) => {
-          if (err) return res.json(err);
-
-          resolve(data);
-        });
-      });
+      // posts = await new Promise((resolve) => {
+      //   const postsQuery =
+      //     "SELECT * FROM `posts` order by `CreatedAt` ASC LIMIT 10;";
+      //   conn.query(postsQuery, (err, data) => {
+      //     if (err) return res.json(err);
+      //     resolve(data);
+      //   });
+      // });
     } else if (qUsername) {
-      posts = await new Promise((resolve) => {
-        const userPostQuery =
-          "SELECT * FROM `posts` where `username` = (?) order by `CreatedAt` DESC";
+      // posts = await new Promise((resolve) => {
+      //   const userPostQuery =
+      //     "SELECT * FROM `posts` where `username` = (?) order by `CreatedAt` DESC";
 
-        conn.query(userPostQuery, [qUsername], (err, data) => {
-          if (err) return res.json(err);
+      //   conn.query(userPostQuery, [qUsername], (err, data) => {
+      //     if (err) return res.json(err);
 
-          resolve(data);
-        });
-      });
+      //     resolve(data);
+      //   });
+      // });
+
+      posts = await Post.find({ username: qUsername });
     } else if (qCategory) {
-      posts = await new Promise((resolve) => {
-        const q = "SELECT * FROM `posts` WHERE FIND_IN_SET((?),category);";
-        conn.query(q, [qCategory], (err, data) => {
-          if (err) return res.json(err);
+      // posts = await new Promise((resolve) => {
+      //   const q = "SELECT * FROM `posts` WHERE FIND_IN_SET((?),category);";
+      //   conn.query(q, [qCategory], (err, data) => {
+      //     if (err) return res.json(err);
 
-          resolve(data);
-        });
-      });
+      //     resolve(data);
+      //   });
+      // });
+
+      posts = await Post.find({ category: { $regex: "New" } });
     } else {
-      posts = await new Promise((resolve) => {
-        const q = "SELECT * FROM posts ORDER BY `CreatedAt` DESC LIMIT 20";
-        conn.query(q, (err, data) => {
-          if (err) return res.json(err);
-          resolve(data);
-        });
-      });
+      //   posts = await new Promise((resolve) => {
+      //     const q = "SELECT * FROM posts ORDER BY `CreatedAt` DESC LIMIT 20";
+      //     conn.query(q, (err, data) => {
+      //       if (err) return res.json(err);
+      //       resolve(data);
+      //     });
+      //   });
+
+      posts = await Post.find().populate({
+        path: "author",
+        model: "User",
+        select: "username profile_pic",
+      }).sort({ createdAt: -1 });
     }
-    return res.json(posts);
+    if (posts.length > 0) {
+      return res.status(200).json(posts);
+    } else {
+      return res.status(404).json({ message: "No Posts to show!" });
+    }
   } catch (err) {
     console.log(err);
   }
@@ -112,55 +125,88 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   const id = req.params.id;
   try {
-    const post = await new Promise((resolve) => {
-      const q =
-        "select * from `posts` where `id` = (?) order by `CreatedAt` ASC";
-      conn.query(q, [id], (err, data) => {
-        if (err) return res.json(err);
-        resolve(data);
-      });
-    });
+    // const post = await new Promise((resolve) => {
+    //   const q =
+    //     "select * from `posts` where `id` = (?) order by `CreatedAt` ASC";
+    //   conn.query(q, [id], (err, data) => {
+    //     if (err) return res.json(err);
+    //     resolve(data);
+    //   });
+    // });
 
-    const comments = await new Promise((resolve) => {
-      const q =
-        "select text, user.username, post_comment.CreatedAt,profile_pic from post_comment, posts, user where posts.id = (?) and post_comment.postId = posts.id and user.id = post_comment.AuthorId order by `CreatedAt` DESC";
+    // const comments = await new Promise((resolve) => {
+    //   const q =
+    //     "select text, user.username, post_comment.CreatedAt,profile_pic from post_comment, posts, user where posts.id = (?) and post_comment.postId = posts.id and user.id = post_comment.AuthorId order by `CreatedAt` DESC";
 
-      conn.query(q, [id], (err, data) => {
-        if (err) return res.json(err);
+    //   conn.query(q, [id], (err, data) => {
+    //     if (err) return res.json(err);
 
-        resolve(data);
-      });
-    });
-    return res.json({ ...post, comments });
-  } catch (err) {}
-});
+    //     resolve(data);
+    //   });
+    // });
 
-router.delete("/:id", async (req, res) => {
-  const id = req.params.id;
-  try {
-    const delete_comments = await new Promise((resolve) => {
-      const q = "DELETE FROM post_comment where postId = ?";
+    var post = await Post.find({ _id: id });
 
-      conn.query(q, [id], (err, data) => {
-        if (err) return res.json(err);
-
-        resolve(data);
-      });
-    });
-
-    if (delete_comments) {
-      const deleted_Post = await new Promise((resolve) => {
-        const q = "DELETE FROM posts where id = ?";
-
-        conn.query(q, [id], (err, data) => {
-          if (err) return res.json(err);
-
-          resolve(data);
-        });
-      });
-      return res.json({ message: "Deleted Success" });
+    try {
+      post = await Post.findOneAndUpdate(
+        { _id: id },
+        { $inc: { views: 1 } },
+        { new: true }
+      );
+    } catch (err) {
+      console.log(err);
     }
-  } catch (err) {}
+
+    const comments = await PostComment.find({
+      post: id,
+    })
+      .populate({
+        path: "author",
+        model: "User",
+        select: "username email profile_text profile_pic",
+      })
+      .sort({ createdAt: -1 });
+
+    if (post) {
+      if (post && comments) {
+        return res.status(200).json({ ...post._doc, comments });
+      } else {
+        return res.status(200).json(post._doc);
+      }
+    } else {
+      return res.status(404).json({ message: "No Post found!" });
+    }
+  } catch (err) {
+    console.log(err);
+  }
 });
+
+// router.delete("/:id", async (req, res) => {
+//   const id = req.params.id;
+//   try {
+//     const delete_comments = await new Promise((resolve) => {
+//       const q = "DELETE FROM post_comment where postId = ?";
+
+//       conn.query(q, [id], (err, data) => {
+//         if (err) return res.json(err);
+
+//         resolve(data);
+//       });
+//     });
+
+//     if (delete_comments) {
+//       const deleted_Post = await new Promise((resolve) => {
+//         const q = "DELETE FROM posts where id = ?";
+
+//         conn.query(q, [id], (err, data) => {
+//           if (err) return res.json(err);
+
+//           resolve(data);
+//         });
+//       });
+//       return res.json({ message: "Deleted Success" });
+//     }
+//   } catch (err) {}
+// });
 
 module.exports = router;
