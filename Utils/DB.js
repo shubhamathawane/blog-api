@@ -17,8 +17,8 @@
 // });
 
 // module.exports = db;
-const mongoose = require('mongoose')
-const dotenv = require('dotenv').config()
+const mongoose = require("mongoose");
+const dotenv = require("dotenv").config();
 
 const mongo_url = process.env.MONGO_URL;
 
@@ -27,6 +27,6 @@ mongoose
     config: { autoIndex: true },
   })
   .then(() => {
-    console.log("Database Connected!")
+    console.log("Database Connected!");
   })
   .catch((err) => console.log(err));

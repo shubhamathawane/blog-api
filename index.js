@@ -6,7 +6,7 @@ const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 
-app.use(express.json({limit: '5mb'}));
+app.use(express.json({ limit: "5mb" }));
 // app.use(express.urlencoded({limit: '5mb'}));
 app.use(cors());
 dotenv.config();
@@ -60,5 +60,5 @@ app.use("/api/user", userRoute);
 app.use("/api/comment", commentRoute);
 
 app.listen(port, (req, res) => {
-  console.log(`Server is running on port ${port}`)
+  console.log(`Server is running on port ${port}`);
 });
