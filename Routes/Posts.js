@@ -106,11 +106,13 @@ router.get("/", async (req, res) => {
       //     });
       //   });
 
-      posts = await Post.find().populate({
-        path: "author",
-        model: "User",
-        select: "username profile_pic",
-      }).sort({ createdAt: -1 });
+      posts = await Post.find()
+        .populate({
+          path: "author",
+          model: "User",
+          select: "username profile_pic",
+        })
+        .sort({ createdAt: -1 });
     }
     if (posts.length > 0) {
       return res.status(200).json(posts);
@@ -181,32 +183,75 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// router.delete("/:id", async (req, res) => {
-//   const id = req.params.id;
-//   try {
-//     const delete_comments = await new Promise((resolve) => {
-//       const q = "DELETE FROM post_comment where postId = ?";
+router.delete("/:id", async (req, res) => {
+  const id = req.params.id;
 
-//       conn.query(q, [id], (err, data) => {
-//         if (err) return res.json(err);
+  // try {
+  //   const delete_comments = await new Promise((resolve) => {
+  //     const q = "DELETE FROM post_comment where postId = ?";
 
-//         resolve(data);
-//       });
-//     });
+  //     conn.query(q, [id], (err, data) => {
+  //       if (err) return res.json(err);
 
-//     if (delete_comments) {
-//       const deleted_Post = await new Promise((resolve) => {
-//         const q = "DELETE FROM posts where id = ?";
+  //       resolve(data);
+  //     });
+  //   });
 
-//         conn.query(q, [id], (err, data) => {
-//           if (err) return res.json(err);
+  //   if (delete_comments) {
+  //     const deleted_Post = await new Promise((resolve) => {
+  //       const q = "DELETE FROM posts where id = ?";
 
-//           resolve(data);
-//         });
-//       });
-//       return res.json({ message: "Deleted Success" });
-//     }
-//   } catch (err) {}
-// });
+  //       conn.query(q, [id], (err, data) => {
+  //         if (err) return res.json(err);
+
+  //         resolve(data);
+  //       });
+  //     });
+  //     return res.json({ message: "Deleted Success" });
+  //   }
+  // } catch (err) {}
+
+  try {
+    const post = await Post.findById(id);
+    if (!post) {
+      res.status(404).json({ message: "No Post Found!" });
+    }
+
+    await post.deleteOne();
+
+    res.json({ message: "Post Delete Successfully!" });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+router.put("/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const { title, content, category, image } = req.body;
+
+    const UpdatedPost = await Post.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          title: title,
+          content: content,
+          category: category,
+          image: image,
+          updatedAt:new Date(),
+        },
+      },
+      { new: true }
+    );
+
+    if (!UpdatedPost) {
+      res.status(404).json({ message: "Something went wrong" });
+    }
+
+    return res.json({ ...UpdatedPost._doc, status: "Success!" });
+  } catch (err) {
+    console.log(err);
+  }
+});
 
 module.exports = router;

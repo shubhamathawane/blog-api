@@ -3,14 +3,22 @@ const { User } = require("../Models/Schema");
 
 const userValidationRules = () => {
   return [
-    body("username").notEmpty().withMessage("Name is required"),
+    body("username")
+      .notEmpty()
+      .withMessage("Name is required")
+      .custom(async (value) => {
+        const username = await User.findOne({ username: value });
+        if (username) {
+          throw new Error("Username is already exists");
+        }
+        return true;
+      }),
     body("email")
       .isEmail()
       .withMessage("Invalid Email")
       .custom(async (value) => {
-        const user = await User.findOne({ email: value });
-
-        if (user) {
+        const email = await User.findOne({ email: value });
+        if (email) {
           throw new Error("Email is already exists");
         }
         return true;

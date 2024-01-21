@@ -20,6 +20,7 @@ router.post("/register", userValidationRules(), async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPass = await bcrypt.hash(req.body.password, salt);
     if (req.body.username && req.body.email) {
+      
       // ================================================
       // const q =
       //   "INSERT INTO user (`username`,`password`, `email`, `profile_text`) VALUES (?)";
